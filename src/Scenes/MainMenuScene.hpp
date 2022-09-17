@@ -34,10 +34,12 @@
 #include <Canis/ECS/Systems/RenderSkyboxSystem.hpp>
 #include <Canis/ECS/Systems/RenderTextSystem.hpp>
 #include <Canis/ECS/Systems/SpriteRenderer2DSystem.hpp>
+#include <Canis/ECS/Systems/ButtonSystem.hpp>
 
 #include <Canis/ECS/Components/ColorComponent.hpp>
 #include <Canis/ECS/Components/RectTransformComponent.hpp>
 #include <Canis/ECS/Components/TextComponent.hpp>
+#include <Canis/ECS/Components/ButtonComponent.hpp>
 #include <Canis/ECS/Components/Sprite2DComponent.hpp>
 
 class MainMenuScene : public Canis::Scene
@@ -52,6 +54,7 @@ private:
 
     Canis::RenderTextSystem *renderTextSystem;
     Canis::SpriteRenderer2DSystem *spriteRenderer2DSystem;
+    Canis::ButtonSystem *buttonSystem;
 
     bool firstMouseMove = true;
     bool mouseLock = false;
@@ -63,12 +66,23 @@ private:
     Canis::GLTexture specularColorPaletteTexture = {};
     Canis::GLTexture supperPupStudioLogoTexture = {};
 
+    static void OnClickPlayButton(void *instance) {
+        Canis::Log("Play");
+        ((Canis::SceneManager *)((MainMenuScene * )instance)->sceneManager)->Load("MainScene");
+    }
+
+    static void OnClickExitButton(void *instance) {
+        Canis::Log("Exit");
+        exit(1);
+    }
+
 public:
     MainMenuScene(std::string _name) : Canis::Scene(_name) {}
     ~MainMenuScene()
     {
         delete renderTextSystem;
         delete spriteRenderer2DSystem;
+        delete buttonSystem;
     }
 
     void PreLoad()
@@ -92,6 +106,7 @@ public:
 
         renderTextSystem = new Canis::RenderTextSystem();
         spriteRenderer2DSystem = new Canis::SpriteRenderer2DSystem();
+        buttonSystem = new Canis::ButtonSystem(inputManager);
 
         renderTextSystem->camera = camera;
         renderTextSystem->window = window;
@@ -112,11 +127,11 @@ public:
         mouseLock = true;
         window->MouseLock(mouseLock);
 
-        { // text
+        { // title text
             entt::entity text = entity_registry.create();
             entity_registry.emplace<Canis::RectTransformComponent>(text,
                                                                    true,                                                // active
-                                                                   glm::vec2(25.0f, window->GetScreenHeight() - 65.0f), // position
+                                                                   glm::vec2(510.0f, window->GetScreenHeight() - 200.0f), // position
                                                                    glm::vec2(0.0f, 0.0f),                               // size
                                                                    glm::vec2(0.0f, 0.0f),                               // rotation
                                                                    1.0f,                                                // scale
@@ -127,9 +142,69 @@ public:
             );
             entity_registry.emplace<Canis::TextComponent>(text,
                                                           Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
-                                                          new std::string("Main Menu Scene") // text
+                                                          new std::string("Space Cowboy") // text
             );
         }
+
+        { // play text
+            entt::entity play_text = entity_registry.create();
+            entity_registry.emplace<Canis::RectTransformComponent>(play_text,
+                                                                   true,                                                // active
+                                                                   glm::vec2(200.0f, window->GetScreenHeight() - 320.0f), // position
+                                                                   glm::vec2(0.0f, 0.0f),                               // size
+                                                                   glm::vec2(0.0f, 0.0f),                               // rotation
+                                                                   1.0f,                                                // scale
+                                                                   0.0f                                                 // depth
+            );
+            entity_registry.emplace<Canis::ColorComponent>(play_text,
+                                                           glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) // #26854c
+            );
+            entity_registry.emplace<Canis::TextComponent>(play_text,
+                                                          Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
+                                                          new std::string("Play") // text
+            );
+            entity_registry.emplace<Canis::ButtonComponent>(play_text,
+                200.0f,
+                320.0f,
+                200.0f,
+                -40.0f,
+                OnClickPlayButton,
+                this,
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)
+            );
+        }
+
+        { // exit text
+            entt::entity exit_text = entity_registry.create();
+            entity_registry.emplace<Canis::RectTransformComponent>(exit_text,
+                                                                   true,                                                // active
+                                                                   glm::vec2(200.0f, window->GetScreenHeight() - 400.0f), // position
+                                                                   glm::vec2(0.0f, 0.0f),                               // size
+                                                                   glm::vec2(0.0f, 0.0f),                               // rotation
+                                                                   1.0f,                                                // scale
+                                                                   0.0f                                                 // depth
+            );
+            entity_registry.emplace<Canis::ColorComponent>(exit_text,
+                                                           glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) // #26854c
+            );
+            entity_registry.emplace<Canis::TextComponent>(exit_text,
+                                                          Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
+                                                          new std::string("Exit") // text
+            );
+            entity_registry.emplace<Canis::ButtonComponent>(exit_text,
+                200.0f,
+                400.0f,
+                200.0f,
+                -40.0f,
+                OnClickExitButton,
+                this,
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)
+            );
+        }
+
+
     }
 
     void UnLoad()
@@ -140,6 +215,7 @@ public:
 
     void Update()
     {
+        buttonSystem->UpdateComponents(deltaTime, entity_registry);
     }
 
     void LateUpdate()
