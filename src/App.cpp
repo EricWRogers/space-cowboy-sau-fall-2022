@@ -71,7 +71,7 @@ void App::Run()
 
 	window.Create("Space Cowboy made in Canis Game Engine", 1280, 720, windowFlags);
 
-	time.init(10000);
+	time.init(60);
 
 	camera.override_camera = false;
 

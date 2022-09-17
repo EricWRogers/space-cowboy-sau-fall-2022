@@ -64,6 +64,8 @@ class MainScene : public Canis::Scene
         Canis::RenderTextSystem *renderTextSystem;
         Canis::SpriteRenderer2DSystem *spriteRenderer2DSystem;
 
+        Boid3DSystem *boid3DSystem;
+
         bool firstMouseMove = true;
         bool mouseLock = false;
 
@@ -149,9 +151,9 @@ class MainScene : public Canis::Scene
             );
             }
 
-            for(int x = 0; x < 3; x++) {
-                for(int y = 0; y < 3; y++) {
-                    for(int z = 0; z < 3; z++) {
+            for(int x = 0; x < 2; x++) {
+                for(int y = 0; y < 2; y++) {
+                    for(int z = 0; z < 2; z++) {
                         entt::entity boid_entity = entity_registry.create();
                         entity_registry.emplace<Canis::TransformComponent>(boid_entity,
                             true, // active
@@ -248,6 +250,7 @@ class MainScene : public Canis::Scene
             delete renderMeshSystem;
             delete renderTextSystem;
             delete spriteRenderer2DSystem;
+            delete boid3DSystem;
         }
         
         void PreLoad()
@@ -295,6 +298,7 @@ class MainScene : public Canis::Scene
             renderMeshSystem = new Canis::RenderMeshSystem();
             renderTextSystem = new Canis::RenderTextSystem();
             spriteRenderer2DSystem = new Canis::SpriteRenderer2DSystem();
+            boid3DSystem = new Boid3DSystem();
 
             renderHDRSystem->renderMeshSystem = renderMeshSystem;
             renderHDRSystem->renderSkyboxSystem = renderSkyboxSystem;
@@ -315,6 +319,8 @@ class MainScene : public Canis::Scene
 
             spriteRenderer2DSystem->window = window;
             spriteRenderer2DSystem->Init(Canis::GlyphSortType::TEXTURE, &spriteShader);
+
+            boid3DSystem->target = glm::vec3(0.0f,5.0f,0.0f);
 
             // Draw mode
             // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -343,7 +349,7 @@ class MainScene : public Canis::Scene
 
         void Update()
         {
-            
+            boid3DSystem->UpdateComponents(0.01f, entity_registry);
         }
 
         void LateUpdate()
