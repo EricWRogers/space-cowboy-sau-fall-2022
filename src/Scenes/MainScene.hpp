@@ -46,6 +46,8 @@
 #include <Canis/ECS/Components/SpotLightComponent.hpp>
 #include <Canis/ECS/Components/PointLightComponent.hpp>
 
+#include "../ECS/Systems/Boid3DSystem.hpp"
+
 class MainScene : public Canis::Scene
 {
     private:
@@ -71,6 +73,171 @@ class MainScene : public Canis::Scene
         Canis::GLTexture diffuseColorPaletteTexture = {};
         Canis::GLTexture specularColorPaletteTexture = {};
         Canis::GLTexture supperPupStudioLogoTexture = {};
+
+        void LoadECS()
+        {
+            { // direction light
+            directionalLight = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(directionalLight,
+                false, // active
+                glm::vec3(-5.0f, 10.0f, -5.0f), // position
+                glm::vec3(-0.2f, -1.0f, -0.3f), // rotation
+                glm::vec3(1, 1, 1) // scale
+            );
+            entity_registry.emplace<Canis::DirectionalLightComponent>(directionalLight,
+                glm::vec3(0.05f, 0.05f, 0.05f), // ambient
+                glm::vec3(0.8f, 0.8f, 0.8f), // diffuse
+                glm::vec3(0.5f, 0.5f, 0.5f) // specular
+            );
+            }
+
+            { // point light 0
+            pointLight0 = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(pointLight0,
+                true, // active
+                glm::vec3(5.0f, 2.0f, 0.0f), // position
+                glm::vec3(0.0f,0.0f,0.0f), // rotation
+                glm::vec3(1, 1, 1) // scale
+            );
+            entity_registry.emplace<Canis::PointLightComponent>(pointLight0,
+                1.0f,                           // constant
+                0.09f,                          // linear
+                0.032f,                         // quadratic
+                glm::vec3(0.0f, 0.05f, 0.05f), // ambient
+                glm::vec3(0.0f, 0.8f, 0.8f),    // diffuse
+                glm::vec3(0.0f, 1.0f, 1.0f)    // specular
+            );
+            }
+
+            { // point light 1
+            pointLight1 = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(pointLight1,
+                true, // active
+                glm::vec3(-5.0f, 2.0f, 0.0f), // position
+                glm::vec3(0.0f,0.0f,0.0f), // rotation
+                glm::vec3(1, 1, 1) // scale
+            );
+            entity_registry.emplace<Canis::PointLightComponent>(pointLight1,
+                1.0f,                           // constant
+                0.09f,                          // linear
+                0.032f,                         // quadratic
+                glm::vec3(0.05f, 0.05f, 0.0f), // ambient
+                glm::vec3(0.8f, 0.8f, 0.0f),    // diffuse
+                glm::vec3(1.0f, 1.0f, 0.0f)    // specular
+            );
+            }
+
+            { // spot light
+            spotLight = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(spotLight,
+                true, // active
+                camera->Position, // position
+                camera->Front, // rotation
+                glm::vec3(1, 1, 1) // scale
+            );
+            float cutOff = glm::cos(glm::radians(12.5f));
+            float outerCutOff = glm::cos(glm::radians(15.0f));
+            entity_registry.emplace<Canis::SpotLightComponent>(spotLight,
+                cutOff,                         // cutOff
+                outerCutOff,                    // outerCutOff
+                1.0f,                           // constant
+                0.09f,                          // linear
+                0.032f,                         // quadratic
+                glm::vec3(0.05f, 0.05f, 0.0f),  // ambient
+                glm::vec3(0.8f, 0.8f, 0.0f),    // diffuse
+                glm::vec3(1.0f, 1.0f, 0.0f)     // specular
+            );
+            }
+
+            for(int x = 0; x < 3; x++) {
+                for(int y = 0; y < 3; y++) {
+                    for(int z = 0; z < 3; z++) {
+                        entt::entity boid_entity = entity_registry.create();
+                        entity_registry.emplace<Canis::TransformComponent>(boid_entity,
+                            true, // active
+                            glm::vec3(0.0f + (x*1.5f), 0.5f + (y*1.5f), 0.0f + (z*1.5f)), // position
+                            glm::vec3(0.0f, 0.0f, 0.0f), // rotation
+                            glm::vec3(1, 1, 1) // scale
+                        );
+                        entity_registry.emplace<Canis::ColorComponent>(boid_entity,
+                            glm::vec4(1.0f)
+                        );
+                        entity_registry.emplace<Canis::MeshComponent>(boid_entity,
+                            cubeModelId,
+                            Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetVAO(),
+                            Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetSize(),
+                            true
+                        );
+                        entity_registry.emplace<Canis::SphereColliderComponent>(boid_entity,
+                            glm::vec3(0.0f),
+                            1.0f
+                        );
+                        entity_registry.emplace<Boid3DComponent>(boid_entity);
+                    }
+                }
+            }
+
+            { // ground
+            entt::entity ground_entity = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(ground_entity,
+                true, // active
+                glm::vec3(0.0f, -0.5f, 0.0f), // position
+                glm::vec3(0.0f, 0.0f, 0.0f), // rotation
+                glm::vec3(20.0f, 0.1f, 20.0f) // scale
+            );
+            entity_registry.emplace<Canis::ColorComponent>(ground_entity,
+                glm::vec4(1.0f)
+            );
+            entity_registry.emplace<Canis::MeshComponent>(ground_entity,
+                cubeModelId,
+                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetVAO(),
+                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetSize(),
+                true
+            );
+            entity_registry.emplace<Canis::SphereColliderComponent>(ground_entity,
+                glm::vec3(0.0f),
+                1.0f
+            );
+            }
+
+            { // health text
+            entt::entity healthText = entity_registry.create();
+            entity_registry.emplace<Canis::RectTransformComponent>(healthText,
+                true, // active
+                glm::vec2(25.0f, window->GetScreenHeight() - 65.0f), // position
+                glm::vec2(0.0f,0.0f), // size
+                glm::vec2(0.0f, 0.0f), // rotation
+                1.0f, // scale
+                0.0f // depth
+            );
+            entity_registry.emplace<Canis::ColorComponent>(healthText,
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) // #26854c
+            );
+            entity_registry.emplace<Canis::TextComponent>(healthText,
+                Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
+                new std::string("Asset Manager Demo") // text
+            );
+            }
+
+            { // sprite test supperPupStudioLogoTexture
+                entt::entity spriteEntity = entity_registry.create();
+                entity_registry.emplace<Canis::RectTransformComponent>(spriteEntity,
+                    true, // active
+                    glm::vec2(100.0f, 400.0f), // position
+                    glm::vec2(diffuseColorPaletteTexture.width/4,diffuseColorPaletteTexture.height/4), // size
+                    glm::vec2(0.0f, 0.0f), // rotation
+                    1.0f, // scale
+                    1.0f // depth
+                );
+                entity_registry.emplace<Canis::ColorComponent>(spriteEntity,
+                    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)
+                );
+                entity_registry.emplace<Canis::Sprite2DComponent>(spriteEntity,
+                    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // uv
+                    diffuseColorPaletteTexture // texture
+                );
+            }
+        }
 
     public:
         MainScene(std::string _name) : Canis::Scene(_name) {}
@@ -153,6 +320,7 @@ class MainScene : public Canis::Scene
             // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
 
+       
         void Load()
         {            
             camera->Position = glm::vec3(20.0f,20.0f,-20.0f);
@@ -164,162 +332,7 @@ class MainScene : public Canis::Scene
             mouseLock = true;
             window->MouseLock(mouseLock);
 
-            { // direction light
-            directionalLight = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(directionalLight,
-                false, // active
-                glm::vec3(-5.0f, 10.0f, -5.0f), // position
-                glm::vec3(-0.2f, -1.0f, -0.3f), // rotation
-                glm::vec3(1, 1, 1) // scale
-            );
-            entity_registry.emplace<Canis::DirectionalLightComponent>(directionalLight,
-                glm::vec3(0.05f, 0.05f, 0.05f), // ambient
-                glm::vec3(0.8f, 0.8f, 0.8f), // diffuse
-                glm::vec3(0.5f, 0.5f, 0.5f) // specular
-            );
-            }
-
-            { // point light 0
-            pointLight0 = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(pointLight0,
-                true, // active
-                glm::vec3(5.0f, 2.0f, 0.0f), // position
-                glm::vec3(0.0f,0.0f,0.0f), // rotation
-                glm::vec3(1, 1, 1) // scale
-            );
-            entity_registry.emplace<Canis::PointLightComponent>(pointLight0,
-                1.0f,                           // constant
-                0.09f,                          // linear
-                0.032f,                         // quadratic
-                glm::vec3(0.0f, 0.05f, 0.05f), // ambient
-                glm::vec3(0.0f, 0.8f, 0.8f),    // diffuse
-                glm::vec3(0.0f, 1.0f, 1.0f)    // specular
-            );
-            }
-
-            { // point light 1
-            pointLight1 = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(pointLight1,
-                true, // active
-                glm::vec3(-5.0f, 2.0f, 0.0f), // position
-                glm::vec3(0.0f,0.0f,0.0f), // rotation
-                glm::vec3(1, 1, 1) // scale
-            );
-            entity_registry.emplace<Canis::PointLightComponent>(pointLight1,
-                1.0f,                           // constant
-                0.09f,                          // linear
-                0.032f,                         // quadratic
-                glm::vec3(0.05f, 0.05f, 0.0f), // ambient
-                glm::vec3(0.8f, 0.8f, 0.0f),    // diffuse
-                glm::vec3(1.0f, 1.0f, 0.0f)    // specular
-            );
-            }
-
-            { // spot light
-            spotLight = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(spotLight,
-                true, // active
-                camera->Position, // position
-                camera->Front, // rotation
-                glm::vec3(1, 1, 1) // scale
-            );
-            float cutOff = glm::cos(glm::radians(12.5f));
-            float outerCutOff = glm::cos(glm::radians(15.0f));
-            entity_registry.emplace<Canis::SpotLightComponent>(spotLight,
-                cutOff,                         // cutOff
-                outerCutOff,                    // outerCutOff
-                1.0f,                           // constant
-                0.09f,                          // linear
-                0.032f,                         // quadratic
-                glm::vec3(0.05f, 0.05f, 0.0f),  // ambient
-                glm::vec3(0.8f, 0.8f, 0.0f),    // diffuse
-                glm::vec3(1.0f, 1.0f, 0.0f)     // specular
-            );
-            }
-
-            { // cube
-            entt::entity cube_entity = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(cube_entity,
-                true, // active
-                glm::vec3(2.0f, 0.0f, 0.0f), // position
-                glm::vec3(0.0f, 0.0f, 0.0f), // rotation
-                glm::vec3(1, 1, 1) // scale
-            );
-            entity_registry.emplace<Canis::ColorComponent>(cube_entity,
-                glm::vec4(1.0f)
-            );
-            entity_registry.emplace<Canis::MeshComponent>(cube_entity,
-                cubeModelId,
-                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetVAO(),
-                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetSize(),
-                true
-            );
-            entity_registry.emplace<Canis::SphereColliderComponent>(cube_entity,
-                glm::vec3(0.0f),
-                1.0f
-            );
-            }
-
-            { // ground
-            entt::entity ground_entity = entity_registry.create();
-            entity_registry.emplace<Canis::TransformComponent>(ground_entity,
-                true, // active
-                glm::vec3(0.0f, -0.5f, 0.0f), // position
-                glm::vec3(0.0f, 0.0f, 0.0f), // rotation
-                glm::vec3(20.0f, 0.1f, 20.0f) // scale
-            );
-            entity_registry.emplace<Canis::ColorComponent>(ground_entity,
-                glm::vec4(1.0f)
-            );
-            entity_registry.emplace<Canis::MeshComponent>(ground_entity,
-                cubeModelId,
-                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetVAO(),
-                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetSize(),
-                true
-            );
-            entity_registry.emplace<Canis::SphereColliderComponent>(ground_entity,
-                glm::vec3(0.0f),
-                1.0f
-            );
-            }
-
-            { // health text
-            entt::entity healthText = entity_registry.create();
-            entity_registry.emplace<Canis::RectTransformComponent>(healthText,
-                true, // active
-                glm::vec2(25.0f, window->GetScreenHeight() - 65.0f), // position
-                glm::vec2(0.0f,0.0f), // size
-                glm::vec2(0.0f, 0.0f), // rotation
-                1.0f, // scale
-                0.0f // depth
-            );
-            entity_registry.emplace<Canis::ColorComponent>(healthText,
-                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) // #26854c
-            );
-            entity_registry.emplace<Canis::TextComponent>(healthText,
-                Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
-                new std::string("Asset Manager Demo") // text
-            );
-            }
-
-            { // sprite test supperPupStudioLogoTexture
-            entt::entity spriteEntity = entity_registry.create();
-            entity_registry.emplace<Canis::RectTransformComponent>(spriteEntity,
-                true, // active
-                glm::vec2(100.0f, 400.0f), // position
-                glm::vec2(diffuseColorPaletteTexture.width/4,diffuseColorPaletteTexture.height/4), // size
-                glm::vec2(0.0f, 0.0f), // rotation
-                1.0f, // scale
-                1.0f // depth
-            );
-            entity_registry.emplace<Canis::ColorComponent>(spriteEntity,
-                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)
-            );
-            entity_registry.emplace<Canis::Sprite2DComponent>(spriteEntity,
-                glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // uv
-                diffuseColorPaletteTexture // texture
-            );
-        }
+            LoadECS();
         }
 
         void UnLoad()
@@ -383,8 +396,8 @@ class MainScene : public Canis::Scene
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
             
             // render hdr will call these two
-            //renderSkyboxSystem->UpdateComponents(deltaTime, entity_registry);
-            //renderMeshSystem->UpdateComponents(deltaTime, entity_registry);
+            renderSkyboxSystem->UpdateComponents(deltaTime, entity_registry);
+            renderMeshSystem->UpdateComponents(deltaTime, entity_registry);
             
             //renderHDRSystem->UpdateComponents(deltaTime, entity_registry);
             renderTextSystem->UpdateComponents(deltaTime, entity_registry);
@@ -401,4 +414,6 @@ class MainScene : public Canis::Scene
         {
 
         }
+
+        
 };

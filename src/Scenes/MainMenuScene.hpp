@@ -124,7 +124,7 @@ public:
         camera->Yaw = Canis::YAW + 135.0f;
         camera->override_camera = false;
         camera->UpdateCameraVectors();
-        mouseLock = true;
+        mouseLock = false;
         window->MouseLock(mouseLock);
 
         { // title text
