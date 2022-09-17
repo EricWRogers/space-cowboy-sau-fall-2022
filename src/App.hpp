@@ -42,6 +42,8 @@
 #include <Canis/ECS/Components/MeshComponent.hpp>
 #include <Canis/ECS/Components/SphereColliderComponent.hpp>
 
+#include "Scenes/SplashScene.hpp"
+#include "Scenes/MainMenuScene.hpp"
 #include "Scenes/MainScene.hpp"
 
 

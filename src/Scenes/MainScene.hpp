@@ -301,6 +301,25 @@ class MainScene : public Canis::Scene
                 new std::string("Asset Manager Demo") // text
             );
             }
+
+            { // sprite test supperPupStudioLogoTexture
+            entt::entity spriteEntity = entity_registry.create();
+            entity_registry.emplace<Canis::RectTransformComponent>(spriteEntity,
+                true, // active
+                glm::vec2(100.0f, 400.0f), // position
+                glm::vec2(diffuseColorPaletteTexture.width/4,diffuseColorPaletteTexture.height/4), // size
+                glm::vec2(0.0f, 0.0f), // rotation
+                1.0f, // scale
+                1.0f // depth
+            );
+            entity_registry.emplace<Canis::ColorComponent>(spriteEntity,
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)
+            );
+            entity_registry.emplace<Canis::Sprite2DComponent>(spriteEntity,
+                glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // uv
+                diffuseColorPaletteTexture // texture
+            );
+        }
         }
 
         void UnLoad()
@@ -364,8 +383,8 @@ class MainScene : public Canis::Scene
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
             
             // render hdr will call these two
-            renderSkyboxSystem->UpdateComponents(deltaTime, entity_registry);
-            renderMeshSystem->UpdateComponents(deltaTime, entity_registry);
+            //renderSkyboxSystem->UpdateComponents(deltaTime, entity_registry);
+            //renderMeshSystem->UpdateComponents(deltaTime, entity_registry);
             
             //renderHDRSystem->UpdateComponents(deltaTime, entity_registry);
             renderTextSystem->UpdateComponents(deltaTime, entity_registry);

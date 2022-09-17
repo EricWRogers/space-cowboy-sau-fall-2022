@@ -69,7 +69,7 @@ void App::Run()
 
 	// windowFlags |= Canis::WindowFlags::BORDERLESS;
 
-	window.Create("Canis", 1280, 720, windowFlags);
+	window.Create("Space Cowboy made in Canis Game Engine", 1280, 720, windowFlags);
 
 	time.init(10000);
 
@@ -79,6 +79,8 @@ void App::Run()
 	srand(seed);
 	Canis::Log("seed : " + std::to_string(seed));
 
+	sceneManager.Add(new SplashScene("SplashScene"));
+	sceneManager.Add(new MainMenuScene("MainMenuScene"));
 	sceneManager.Add(new MainScene("MainScene"));
 
 	sceneManager.PreLoad(
@@ -98,7 +100,7 @@ void App::Run()
 }
 void App::Load()
 {
-	sceneManager.Load("MainScene");
+	sceneManager.Load("SplashScene");
 
 	// start timer
 	previousTime = high_resolution_clock::now();
