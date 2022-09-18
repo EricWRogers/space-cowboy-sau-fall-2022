@@ -81,7 +81,7 @@ class MainScene : public Canis::Scene
             { // direction light
             directionalLight = entity_registry.create();
             entity_registry.emplace<Canis::TransformComponent>(directionalLight,
-                false, // active
+                true, // active
                 glm::vec3(-5.0f, 10.0f, -5.0f), // position
                 glm::vec3(-0.2f, -1.0f, -0.3f), // rotation
                 glm::vec3(1, 1, 1) // scale
@@ -151,13 +151,37 @@ class MainScene : public Canis::Scene
             );
             }
 
-            for(int x = 0; x < 2; x++) {
-                for(int y = 0; y < 2; y++) {
-                    for(int z = 0; z < 2; z++) {
+            { // target cube
+            entt::entity target_cube_entity = entity_registry.create();
+            entity_registry.emplace<Canis::TransformComponent>(target_cube_entity,
+                true, // active
+                glm::vec3(0.0f,5.0f,0.0f), // position
+                glm::vec3(0.0f, 0.0f, 0.0f), // rotation
+                glm::vec3(1.0f, 1.0f, 1.0f) // scale
+            );
+            entity_registry.emplace<Canis::ColorComponent>(target_cube_entity,
+                glm::vec4(1.0f,0.0f,0.0f,1.0f)
+            );
+            entity_registry.emplace<Canis::MeshComponent>(target_cube_entity,
+                cubeModelId,
+                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetVAO(),
+                Canis::AssetManager::GetInstance().Get<Canis::ModelAsset>(cubeModelId)->GetSize(),
+                true
+            );
+            entity_registry.emplace<Canis::SphereColliderComponent>(target_cube_entity,
+                glm::vec3(0.0f),
+                1.0f
+            );
+            }
+            
+            int bigNum = 3;
+            for(int x = 0; x < bigNum; x++) {
+                for(int y = 0; y < bigNum; y++) {
+                    for(int z = 0; z < bigNum; z++) {
                         entt::entity boid_entity = entity_registry.create();
                         entity_registry.emplace<Canis::TransformComponent>(boid_entity,
                             true, // active
-                            glm::vec3(0.0f + (x*1.5f), 0.5f + (y*1.5f), 0.0f + (z*1.5f)), // position
+                            glm::vec3(20.0f + (x*1.5f), 0.5f + (y*1.5f), 0.0f + (z*1.5f)), // position
                             glm::vec3(0.0f, 0.0f, 0.0f), // rotation
                             glm::vec3(1, 1, 1) // scale
                         );
@@ -320,7 +344,10 @@ class MainScene : public Canis::Scene
             spriteRenderer2DSystem->window = window;
             spriteRenderer2DSystem->Init(Canis::GlyphSortType::TEXTURE, &spriteShader);
 
-            boid3DSystem->target = glm::vec3(0.0f,5.0f,0.0f);
+            boid3DSystem->targets.push_back(glm::vec3(20.0f,10.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,20.0f));
+            boid3DSystem->targets.push_back(glm::vec3(-20.0f,10.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,-20.0f));
 
             // Draw mode
             // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -349,7 +376,8 @@ class MainScene : public Canis::Scene
 
         void Update()
         {
-            boid3DSystem->UpdateComponents(0.01f, entity_registry);
+            if (deltaTime > 0.0f && deltaTime < 1.0f)
+                boid3DSystem->UpdateComponents(0.00001, entity_registry);
         }
 
         void LateUpdate()
