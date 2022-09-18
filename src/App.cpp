@@ -100,7 +100,7 @@ void App::Run()
 }
 void App::Load()
 {
-	sceneManager.Load("MainScene");
+	sceneManager.Load("SplashScene");
 
 	// start timer
 	previousTime = high_resolution_clock::now();

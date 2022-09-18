@@ -73,7 +73,7 @@ class MainScene : public Canis::Scene
         int cubeModelId = 0;
         int antonioFontId = 0;
 
-        SDL_Thread* threadID;
+        SDL_Thread* threadID = 0;
 
         float delta;
 
@@ -211,7 +211,7 @@ class MainScene : public Canis::Scene
             { // ground
             entt::entity ground_entity = entity_registry.create();
             entity_registry.emplace<Canis::TransformComponent>(ground_entity,
-                true, // active
+                false, // active
                 glm::vec3(0.0f, -0.5f, 0.0f), // position
                 glm::vec3(0.0f, 0.0f, 0.0f), // rotation
                 glm::vec3(20.0f, 0.1f, 20.0f) // scale
@@ -330,10 +330,12 @@ class MainScene : public Canis::Scene
             spriteRenderer2DSystem->window = window;
             spriteRenderer2DSystem->Init(Canis::GlyphSortType::TEXTURE, &spriteShader);
 
-            boid3DSystem->targets.push_back(glm::vec3(20.0f,10.0f,0.0f));
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,20.0f));
-            boid3DSystem->targets.push_back(glm::vec3(-20.0f,10.0f,0.0f));
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,-20.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,-20.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(30.0f,10.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,30.0f));
+            boid3DSystem->targets.push_back(glm::vec3(-30.0f,10.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,-30.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,40.0f,0.0f));
 
             // Draw mode
             // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -431,6 +433,8 @@ class MainScene : public Canis::Scene
 
         void Draw()
         {
+            if (threadID == 0)
+                return;
             glDepthFunc(GL_LESS);
             glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
