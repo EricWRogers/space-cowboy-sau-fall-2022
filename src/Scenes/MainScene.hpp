@@ -54,6 +54,7 @@ class MainScene : public Canis::Scene
         entt::registry entity_registry;
 
         entt::entity directionalLight, spotLight, pointLight0, pointLight1;
+        entt::entity fpsText;
 
         Canis::Shader shader;
         Canis::Shader spriteShader;
@@ -71,6 +72,10 @@ class MainScene : public Canis::Scene
 
         int cubeModelId = 0;
         int antonioFontId = 0;
+
+        SDL_Thread* threadID;
+
+        float delta;
 
         Canis::GLTexture diffuseColorPaletteTexture = {};
         Canis::GLTexture specularColorPaletteTexture = {};
@@ -174,19 +179,19 @@ class MainScene : public Canis::Scene
             );
             }
             
-            int bigNum = 3;
+            int bigNum = 12;
             for(int x = 0; x < bigNum; x++) {
                 for(int y = 0; y < bigNum; y++) {
                     for(int z = 0; z < bigNum; z++) {
                         entt::entity boid_entity = entity_registry.create();
                         entity_registry.emplace<Canis::TransformComponent>(boid_entity,
                             true, // active
-                            glm::vec3(20.0f + (x*1.5f), 0.5f + (y*1.5f), 0.0f + (z*1.5f)), // position
+                            glm::vec3(25.0f + (x*1.5f), 0.5f + (y*1.5f), 0.0f + (z*1.5f)), // position
                             glm::vec3(0.0f, 0.0f, 0.0f), // rotation
                             glm::vec3(1, 1, 1) // scale
                         );
                         entity_registry.emplace<Canis::ColorComponent>(boid_entity,
-                            glm::vec4(1.0f)
+                            glm::vec4(((rand() % 100 + 1)/100.0f),((rand() % 100 + 1)/100.0f),((rand() % 100 + 1)/100.0f),1.0f)
                         );
                         entity_registry.emplace<Canis::MeshComponent>(boid_entity,
                             cubeModelId,
@@ -226,9 +231,9 @@ class MainScene : public Canis::Scene
             );
             }
 
-            { // health text
-            entt::entity healthText = entity_registry.create();
-            entity_registry.emplace<Canis::RectTransformComponent>(healthText,
+            { // fps text
+            fpsText = entity_registry.create();
+            entity_registry.emplace<Canis::RectTransformComponent>(fpsText,
                 true, // active
                 glm::vec2(25.0f, window->GetScreenHeight() - 65.0f), // position
                 glm::vec2(0.0f,0.0f), // size
@@ -236,32 +241,13 @@ class MainScene : public Canis::Scene
                 1.0f, // scale
                 0.0f // depth
             );
-            entity_registry.emplace<Canis::ColorComponent>(healthText,
+            entity_registry.emplace<Canis::ColorComponent>(fpsText,
                 glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) // #26854c
             );
-            entity_registry.emplace<Canis::TextComponent>(healthText,
+            entity_registry.emplace<Canis::TextComponent>(fpsText,
                 Canis::AssetManager::GetInstance().LoadText("assets/fonts/Antonio-Bold.ttf", 48),
-                new std::string("Asset Manager Demo") // text
+                new std::string("FPS : 0") // text
             );
-            }
-
-            { // sprite test supperPupStudioLogoTexture
-                entt::entity spriteEntity = entity_registry.create();
-                entity_registry.emplace<Canis::RectTransformComponent>(spriteEntity,
-                    true, // active
-                    glm::vec2(100.0f, 400.0f), // position
-                    glm::vec2(diffuseColorPaletteTexture.width/4,diffuseColorPaletteTexture.height/4), // size
-                    glm::vec2(0.0f, 0.0f), // rotation
-                    1.0f, // scale
-                    1.0f // depth
-                );
-                entity_registry.emplace<Canis::ColorComponent>(spriteEntity,
-                    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)
-                );
-                entity_registry.emplace<Canis::Sprite2DComponent>(spriteEntity,
-                    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // uv
-                    diffuseColorPaletteTexture // texture
-                );
             }
         }
 
@@ -362,7 +348,7 @@ class MainScene : public Canis::Scene
             camera->Yaw = Canis::YAW+135.0f;
             camera->override_camera = false;
             camera->UpdateCameraVectors();
-            mouseLock = true;
+            mouseLock = false;
             window->MouseLock(mouseLock);
 
             LoadECS();
@@ -374,10 +360,30 @@ class MainScene : public Canis::Scene
             entity_registry.clear();
         }
 
+        static int ThreadUpdate( void* a)
+        {
+            MainScene *mainScene = static_cast<MainScene*>(a);
+
+            if (mainScene->delta > 0.0001f && mainScene->delta < 0.09f) {
+                mainScene->boid3DSystem->UpdateComponents(mainScene->delta, mainScene->entity_registry);
+            }
+
+            return 0;
+        }
+        
         void Update()
         {
-            if (deltaTime > 0.0f && deltaTime < 1.0f)
-                boid3DSystem->UpdateComponents(0.00001, entity_registry);
+            delta = deltaTime;
+            threadID = 0;
+            threadID = SDL_CreateThread( ThreadUpdate, "ThreadUpdate", this);
+
+            //if (deltaTime > 0.0001f && deltaTime < 0.09f) {
+            //    boid3DSystem->UpdateComponents(deltaTime, entity_registry);
+            //}
+
+            //fpsText
+            auto [rect, text] = entity_registry.get<Canis::RectTransformComponent, Canis::TextComponent>(fpsText);
+            (*text.text) = "fps : " + std::to_string(int(window->fps));
         }
 
         void LateUpdate()
@@ -438,10 +444,12 @@ class MainScene : public Canis::Scene
             spriteRenderer2DSystem->UpdateComponents(deltaTime, entity_registry);
             
 
-            window->SetWindowName("Canis : Template | fps : " + std::to_string(int(window->fps))
+            /*window->SetWindowName("Canis : Template | fps : " + std::to_string(int(window->fps))
             + " deltaTime : " + std::to_string(deltaTime)
             + " Enitity : " + std::to_string(entity_registry.size())
-            + " Rendered : " + std::to_string(renderMeshSystem->entities_rendered));
+            + " Rendered : " + std::to_string(renderMeshSystem->entities_rendered));*/
+            int threadReturnValue;
+            SDL_WaitThread(threadID, &threadReturnValue);
         }
 
         void InputUpdate()

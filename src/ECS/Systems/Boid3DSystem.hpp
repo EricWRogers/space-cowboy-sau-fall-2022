@@ -7,6 +7,7 @@
 #include <Canis/Math.hpp>
 #include <Canis/InputManager.hpp>
 #include <Canis/External/entt.hpp>
+#include <Canis/DataStucture/OctTree.hpp>
 
 #include <Canis/ECS/Components/TransformComponent.hpp>
 #include <Canis/ECS/Components/SphereColliderComponent.hpp>
@@ -27,12 +28,14 @@ public:
     float maxAlignmentDistance = 3.0f;
     float maxCohesionDistance = 3.0f;
 
-    float seekWeight = 0.6f;
-    float separationWeight = 2.0f;
+    float seekWeight = 0.8f;
+    float separationWeight = 3.0f;
     float alignmentWeight = 0.3f;
     float cohesionWeight = 0.3f;
 
     std::vector<glm::vec3> targets = {};
+
+    Canis::OctTree *octTree = new Canis::OctTree(glm::vec3(0.0f),300.0f);
 
     Boid3DSystem() {}
 
@@ -44,7 +47,6 @@ public:
         if (glm::length(boid.velocity) > boid.maxSpeed * deltaTime) {
             boid.velocity = glm::normalize(boid.velocity);
             boid.velocity *= boid.maxSpeed * deltaTime;
-            Canis::Log("vel clamp");
         }
 
         //boid.velocity *= boid.drag;
@@ -54,6 +56,8 @@ public:
 
     void UpdateComponents(float deltaTime, entt::registry &registry)
     {
+        delete octTree;
+        octTree = new Canis::OctTree(glm::vec3(0.0f),300.0f);
         glm::vec3 seek = glm::vec3(0.0f);
         glm::vec3 alignment = glm::vec3(0.0f);
         glm::vec3 cohesion = glm::vec3(0.0f);
@@ -67,6 +71,10 @@ public:
         float distance_target = 0.0f;
 
         auto view = registry.view<Canis::TransformComponent, Canis::SphereColliderComponent, Boid3DComponent>();
+        for (auto [entity, transform, sphere, boid] : view.each())
+        {
+            octTree->AddPoint(transform.position);
+        }
         for (auto [entity, transform, sphere, boid] : view.each())
         {
             seek = glm::vec3(0.0f);
@@ -83,7 +91,6 @@ public:
                     boid.index = 0;
                 }
                 target = targets[boid.index];
-                Canis::Log("Change Target");
             }
 
             // seek
@@ -92,39 +99,31 @@ public:
             // alignment
             num_of_agents = 0.0f;
             num_of_agents_c = 0.0f;
-
-            for (auto [n_entity, n_transform, n_sphere, n_boid] : view.each())
+            std::vector<glm::vec3> points = {};
+            if(octTree->PointsQuery(transform.position, 3.0f, points))
             {
-                if (n_entity != entity)
+                //Canis::Log(std::to_string(points.size()));
+                for(int i = 0; i < points.size(); i++)
                 {
-                    distance = glm::distance(transform.position, n_transform.position);
-
-                    /*cohesion += (maxCohesionDistance > distance) ? n_transform.position : 0.0f;
-                    num_of_agents_c += (maxCohesionDistance > distance) ? 1 : 0;
-
-                    alignment += (maxAlignmentDistance > distance) ? transform.position + n_transform.position : 0.0f;
-                    num_of_agents += (maxAlignmentDistance > distance) ? 1 : 0;
-
-                    separation += (maxSeparationDistance > distance) ? transform.position - n_transform.position : 0.0f;*/
-
-
-
-                    if (maxCohesionDistance > distance)
+                    if (transform.position != points[i])
                     {
-                        num_of_agents_c++;
-                        cohesion += n_transform.position;
+                        distance = glm::distance(transform.position, points[i]);
 
-                        if (maxAlignmentDistance > distance)
+                        if (maxCohesionDistance > distance)
                         {
-                            num_of_agents++;
-                            alignment += transform.position + n_transform.position;
+                            num_of_agents_c++;
+                            cohesion += points[i];
 
-                            separation += (maxSeparationDistance > distance) ? transform.position - n_transform.position : glm::vec3(0.0f);
+                            if (maxAlignmentDistance > distance)
+                            {
+                                num_of_agents++;
+                                alignment += transform.position + points[i];
+
+                                separation += (maxSeparationDistance > distance) ? transform.position - points[i] : glm::vec3(0.0f);
+                            }
+
                         }
-
                     }
-
-                    
                 }
             }
 
