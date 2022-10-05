@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
+#include <execution>
 
 #include <Canis/Math.hpp>
 #include <Canis/InputManager.hpp>
@@ -20,26 +21,37 @@ private:
     
 
 public:
-    float maxDistance = 10.0f;
-    float minDistanceToChangeTarget = 2.0f;
-    glm::vec3 target;
+    float maxDistance;
+    float minDistanceToChangeTarget;
+    float maxSeparationDistance;
+    float maxAlignmentDistance;
+    float maxCohesionDistance;
+    float seekWeight;
+    float separationWeight;
+    float alignmentWeight;
+    float cohesionWeight;
+    float dt;
+    entt::registry *reg;
+    std::vector<glm::vec3> targets;
+    Canis::OctTree *octTree;
 
-    float maxSeparationDistance = 2.0f;
-    float maxAlignmentDistance = 3.0f;
-    float maxCohesionDistance = 3.0f;
+    Boid3DSystem() {
+        maxDistance = 10.0f;
+        minDistanceToChangeTarget = 2.0f;
+        maxSeparationDistance = 2.0f;
+        maxAlignmentDistance = 3.0f;
+        maxCohesionDistance = 3.0f;
+        seekWeight = 0.8f;
+        separationWeight = 3.0f;
+        alignmentWeight = 0.3f;
+        cohesionWeight = 0.3f;
+        dt = 0.0f;
+        reg = nullptr;
+        targets = {};
+        octTree = new Canis::OctTree(glm::vec3(0.0f),300.0f);
+    }
 
-    float seekWeight = 0.8f;
-    float separationWeight = 3.0f;
-    float alignmentWeight = 0.3f;
-    float cohesionWeight = 0.3f;
-
-    std::vector<glm::vec3> targets = {};
-
-    Canis::OctTree *octTree = new Canis::OctTree(glm::vec3(0.0f),300.0f);
-
-    Boid3DSystem() {}
-
-    void UpdateBoid(float deltaTime, Canis::TransformComponent &transform, Boid3DComponent &boid)
+    static void UpdateBoid(float deltaTime, Canis::TransformComponent &transform, Boid3DComponent &boid)
     {
         boid.velocity += (boid.acceleration * boid.speed) * deltaTime;
 
@@ -58,31 +70,28 @@ public:
     {
         delete octTree;
         octTree = new Canis::OctTree(glm::vec3(0.0f),300.0f);
-        glm::vec3 seek = glm::vec3(0.0f);
-        glm::vec3 alignment = glm::vec3(0.0f);
-        glm::vec3 cohesion = glm::vec3(0.0f);
-        glm::vec3 separation = glm::vec3(0.0f);
-        float distance = 0.0f;
-        float num_of_agents = 0.0f;
-        float num_of_agents_c = 0.0f;
-        glm::quat quat_look_at;
-        glm::vec3 rot;
-        glm::mat4 temp_transform;
-        float distance_target = 0.0f;
+        dt = deltaTime;
+        reg = &registry;
+        
 
         auto view = registry.view<Canis::TransformComponent, Canis::SphereColliderComponent, Boid3DComponent>();
         for (auto [entity, transform, sphere, boid] : view.each())
         {
             octTree->AddPoint(transform.position);
         }
-        for (auto [entity, transform, sphere, boid] : view.each())
-        {
-            seek = glm::vec3(0.0f);
-            alignment = glm::vec3(0.0f);
-            cohesion = glm::vec3(0.0f);
-            separation = glm::vec3(0.0f);
-            distance = 0.0f;
-            target = targets[boid.index];
+        std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&view, this](auto entity) {
+        //for (auto [entity, transform, sphere, boid] : view.each())
+            auto [transform, sphere, boid] = reg->get<Canis::TransformComponent, Canis::SphereColliderComponent, Boid3DComponent>(entity);
+            glm::vec3 seek = glm::vec3(0.0f);
+            glm::vec3 alignment = glm::vec3(0.0f);
+            glm::vec3 cohesion = glm::vec3(0.0f);
+            glm::vec3 separation = glm::vec3(0.0f);
+            float distance = 0.0f;
+            glm::vec3 target = targets[boid.index];
+            glm::quat quat_look_at;
+            glm::vec3 rot;
+            glm::mat4 temp_transform;
+            float distance_target = 0.0f;
 
             
             if (minDistanceToChangeTarget >= glm::distance(transform.position, target)) {
@@ -97,8 +106,8 @@ public:
             seek = glm::normalize(target - transform.position);
 
             // alignment
-            num_of_agents = 0.0f;
-            num_of_agents_c = 0.0f;
+            float num_of_agents = 0.0f;
+            float num_of_agents_c = 0.0f;
             std::vector<glm::vec3> points = {};
             if(octTree->PointsQuery(transform.position, 3.0f, points))
             {
@@ -160,8 +169,8 @@ public:
 
             boid.acceleration = seek * seekWeight + alignment * alignmentWeight + cohesion * cohesionWeight + separation * separationWeight;
 
-            UpdateBoid(deltaTime, transform, boid);
-        }
+            UpdateBoid(dt, transform, boid);
+        });
     }
 };
 
