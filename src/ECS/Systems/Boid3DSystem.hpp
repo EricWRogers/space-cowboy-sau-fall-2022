@@ -57,8 +57,8 @@ public:
 
         //Canis::Log(std::to_string(glm::length(boid.velocity)));
         if (glm::length(boid.velocity) > boid.maxSpeed * deltaTime) {
-            boid.velocity = glm::normalize(boid.velocity);
-            boid.velocity *= boid.maxSpeed * deltaTime;
+            //boid.velocity = glm::normalize(boid.velocity);
+            boid.velocity = (glm::normalize(boid.velocity)) * boid.maxSpeed * deltaTime;
         }
 
         //boid.velocity *= boid.drag;
@@ -148,17 +148,21 @@ public:
                 glm::vec3(0.0f, 0.0f, 1.0f),
                 glm::normalize(cohesion - transform.position)
             );
-            rot = glm::eulerAngles(quat_look_at);
-            temp_transform = glm::mat4(1);
+            //rot = glm::eulerAngles(quat_look_at);
+            /*temp_transform = glm::mat4(1);
             temp_transform = glm::translate(temp_transform, transform.position);
             temp_transform = glm::rotate(temp_transform, rot.x, glm::vec3(1, 0, 0));
             temp_transform = glm::rotate(temp_transform, rot.y, glm::vec3(0, 1, 0));
             temp_transform = glm::rotate(temp_transform, rot.z, glm::vec3(0, 0, 1));
             temp_transform = glm::scale(temp_transform, transform.scale);
 
-            cohesion = glm::normalize(temp_transform[3]);
+            cohesion = glm::normalize(temp_transform[3]);*/
 
-            cohesion = glm::normalize(cohesion - transform.position);
+            temp_transform = glm::translate(glm::mat4(1.0f), transform.position) * glm::toMat4(quat_look_at);
+            temp_transform = glm::scale(temp_transform, transform.scale);
+            
+
+            cohesion = glm::normalize(glm::vec3(temp_transform[3])) - glm::normalize(transform.position);
 
             // end of cohesion
 

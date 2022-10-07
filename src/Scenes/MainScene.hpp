@@ -179,10 +179,12 @@ class MainScene : public Canis::Scene
             );
             }
             
-            int bigNum = 12;
+            int bigNum = 30;
+            int numCount = 0;
             for(int x = 0; x < bigNum; x++) {
                 for(int y = 0; y < bigNum; y++) {
                     for(int z = 0; z < bigNum; z++) {
+                        numCount++;
                         entt::entity boid_entity = entity_registry.create();
                         entity_registry.emplace<Canis::TransformComponent>(boid_entity,
                             true, // active
@@ -208,6 +210,7 @@ class MainScene : public Canis::Scene
                 }
             }
 
+            std::cout << numCount << std::endl;
             { // ground
             entt::entity ground_entity = entity_registry.create();
             entity_registry.emplace<Canis::TransformComponent>(ground_entity,
@@ -330,12 +333,12 @@ class MainScene : public Canis::Scene
             spriteRenderer2DSystem->window = window;
             spriteRenderer2DSystem->Init(Canis::GlyphSortType::TEXTURE, &spriteShader);
 
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,-20.0f,0.0f));
-            boid3DSystem->targets.push_back(glm::vec3(30.0f,10.0f,0.0f));
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,30.0f));
-            boid3DSystem->targets.push_back(glm::vec3(-30.0f,10.0f,0.0f));
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,10.0f,-30.0f));
-            boid3DSystem->targets.push_back(glm::vec3(0.0f,40.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,-40.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(50.0f,30.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,30.0f,50.0f));
+            boid3DSystem->targets.push_back(glm::vec3(-50.0f,30.0f,0.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,30.0f,-50.0f));
+            boid3DSystem->targets.push_back(glm::vec3(0.0f,80.0f,0.0f));
 
             // Draw mode
             // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
